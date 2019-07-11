@@ -9,8 +9,9 @@
 	<div th:replace="fragmentos/fragmentos :: cabecalho"></div>
 	<div class="container">
 		<h3>Listagem de Tarefas</h3>
-		<a href="tarefas/inserir" class="btn btn-success"> Inserir nova tarefa</a>
-		
+		<a href="/tarefas/inserir" class="btn btn-success"> Inserir nova
+			tarefa</a>
+
 		<div th:each="tarefa: ${tarefas}" style="margin: 10px">
 			<div class="card bg-light mb-3">
 				<div class="card-header" th:text="${tarefa.titulo}"></div>
@@ -18,6 +19,23 @@
 					<p class="card-text" th:text="${tarefa.descricao}"></p>
 					<p class="card-text"
 						th:text="${'Data de expiração: ' + #dates.format(tarefa.expiracao, 'dd/MM/yyyy')}"></p>
+					<div>
+						<p class="card-text" style="color: orange;"
+							th:if="${tarefa.expiracao.after(new java.util.Date())}">Em
+							tempo</p>
+						<p class="card-text" style="color: red;"
+							th:if="${tarefa.expiracao.before(new java.util.Date()) }">Atrasada</p>
+						<p class="card-text" style="color: green;"
+							th:if="${tarefa.concluida}">Concluída</p>
+					</div>
+				</div>
+				<div class="card-footer bg-light">
+					<p>
+						<a th:href="@{/tarefas/alterar/{id}(id=${tarefa.id})}">Alterar</a>
+						| <a th:href="@{/tarefas/excluir/{id}(id=${tarefa.id})}">Excluir</a>
+						| <a th:if="${!tarefa.concluida}"
+							th:href="@{/tarefas/concluir/{id}(id=${tarefa.id})}">Concluir</a>
+					</p>
 				</div>
 			</div>
 		</div>
