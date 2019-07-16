@@ -2,6 +2,8 @@ package br.com.treinaweb.twgerenciadortarefas.controllers;
 
 import java.util.Date;
 
+import javax.security.auth.message.callback.PrivateKeyCallback.Request;
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +19,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 
 import br.com.treinaweb.twgerenciadortarefas.models.Tarefa;
+import br.com.treinaweb.twgerenciadortarefas.models.Usuario;
 import br.com.treinaweb.twgerenciadortarefas.repository.RepositorioTarefa;
+import br.com.treinaweb.twgerenciadortarefas.services.ServicoUsuario;
 
 @Controller
 @RequestMapping("/tarefas")
@@ -26,11 +30,15 @@ public class TarefasController {
 	@Autowired
 	private RepositorioTarefa repositorioTarefa;
 
+	@Autowired
+	private ServicoUsuario servicoUsuario;
+
 	@GetMapping("/listar")
-	public ModelAndView listar() {
+	public ModelAndView listar(HttpServletRequest request) {
 		ModelAndView mv = new ModelAndView();
 		mv.setViewName("tarefas/listar");
-		mv.addObject("tarefas", repositorioTarefa.findAll());
+		String emailUsuario = request.getUserPrincipal().getName();
+		mv.addObject("tarefas", repositorioTarefa.carregarTarefasPorusuario(emailUsuario));
 		return mv;
 	}
 
@@ -43,7 +51,7 @@ public class TarefasController {
 	}
 
 	@PostMapping("/inserir")
-	public ModelAndView inserir(@Valid Tarefa tarefa, BindingResult result) {
+	public ModelAndView inserir(@Valid Tarefa tarefa, BindingResult result, HttpServletRequest request) {
 		ModelAndView mv = new ModelAndView();
 		if (tarefa.getExpiracao() == null) {
 			result.rejectValue("expiracao", "tarefa.expiracaoInvalida", "A data de expiração é obrigatória");
@@ -58,8 +66,11 @@ public class TarefasController {
 			mv.setViewName("tarefas/inserir");
 			mv.addObject(tarefa);
 		} else {
-			mv.setViewName("redirect:/tarefas/listar");
+			String emailUsuario = request.getUserPrincipal().getName();
+			Usuario usuarioLogado = servicoUsuario.encontrarPorEmail(emailUsuario);
+			tarefa.setUsuario(usuarioLogado);
 			repositorioTarefa.save(tarefa);
+			mv.setViewName("redirect:/tarefas/listar");
 		}
 		return mv;
 	}
@@ -94,13 +105,13 @@ public class TarefasController {
 		}
 		return mv;
 	}
-	
+
 	@GetMapping("excluir/{id}")
 	public String excluir(@PathVariable("id") Long id) {
 		repositorioTarefa.deleteById(id);
 		return "redirect:/tarefas/listar";
 	}
-	
+
 	@GetMapping("concluir/{id}")
 	public String concluir(@PathVariable("id") Long id) {
 		Tarefa tarefa = repositorioTarefa.getOne(id);
